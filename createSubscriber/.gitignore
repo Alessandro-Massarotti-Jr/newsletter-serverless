@@ -1,0 +1,10 @@
+build/
+node_modules/
+.env
+.env.test
+__tests__/
+.npmrc
+.vscode/launch.json
+src/useCasesCopy*
+*.DS_Store*
+node-prisma-app
