@@ -1,7 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { z } from "zod";
 import { MongoSubscriberRepository } from "./aplication/repositories/subscriberRepository/implementations/MongoSubscriberRepository";
-crypto;
 
 export async function handler(
   event: APIGatewayProxyEvent

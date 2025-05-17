@@ -3,7 +3,7 @@ import { MongoEmailTemplateRepository } from "./aplication/repositories/emailTem
 import { SesMailProvider } from "./aplication/providers/mailProvider/implementations/SesMailProvider";
 
 type sendEmailMessage = {
-  tamplate: string;
+  template: string;
   emails: string[];
   variables: Record<string, string>;
 };
@@ -17,7 +17,7 @@ export async function handler(event: SQSEvent): Promise<void> {
     );
     const provider = new SesMailProvider();
     const emailTemplate = await repository.findByTemplateName({
-      name: body.tamplate,
+      name: body.template,
     });
     await provider.send({
       emails: body.emails,
