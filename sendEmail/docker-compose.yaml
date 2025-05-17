@@ -1,0 +1,10 @@
+services:
+  create-subscriber:
+    build: ./
+    environment:
+      - MONGO_DB_URL=mongodb://host.docker.internal:27017?ssl=false
+      - MONGO_DB_DATABASE=email-templates
+      - MONGO_DB_COLLECTION=email-templates
+      - MAIL_FROM=example@mail.com
+    ports:
+      - "9000:8080"
