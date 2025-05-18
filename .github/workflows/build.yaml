@@ -1,0 +1,47 @@
+name: Build and Push Multiple Lambda Docker Images to ECR
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        folder:
+          [createSubscriber, deleteSubscriber, newsletterScheduler, sendEmail]
+
+    env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag and push image for ${{ matrix.folder }}
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          FOLDER: ${{ matrix.folder }}
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+        run: |
+          IMAGE_NAME=$ECR_REGISTRY/${FOLDER}
+          docker build -t $IMAGE_NAME:$IMAGE_TAG $FOLDER
+          docker push $IMAGE_NAME:$IMAGE_TAG
+
+      - name: Show Image pushed
+        run: echo "Pushed ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.folder }}:${{ github.sha }}"
