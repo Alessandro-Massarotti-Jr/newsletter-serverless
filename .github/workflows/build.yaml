@@ -38,6 +38,11 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Create ECR repository if not exists
+        run: |
+          aws ecr describe-repositories --repository-names newsletter-scheduler || \
+          aws ecr create-repository --repository-name newsletter-scheduler
+
       - name: Build, tag and push image for ${{ matrix.folder }}
         env:
           IMAGE_TAG: ${{ github.sha }}
