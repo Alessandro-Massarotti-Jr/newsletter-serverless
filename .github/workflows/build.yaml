@@ -12,7 +12,12 @@ jobs:
     strategy:
       matrix:
         folder:
-          [createSubscriber, deleteSubscriber, newsletterScheduler, sendEmail]
+          [
+            create-subscriber,
+            delete-subscriber,
+            newsletter-scheduler,
+            send-email,
+          ]
 
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
