@@ -1,9 +1,8 @@
-name: Build and Push Multiple Lambda Docker Images to ECR
+name: Build & Push Docker images to ECR
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
   build-and-push:
@@ -11,47 +10,53 @@ jobs:
 
     strategy:
       matrix:
-        folder:
-          [
-            create-subscriber,
-            delete-subscriber,
-            newsletter-scheduler,
-            send-email,
-          ]
+        service:
+          - create-subscriber
+          - delete-subscriber
+          - newsletter-scheduler
+          - send-email
 
     env:
       AWS_REGION: ${{ secrets.AWS_REGION }}
-      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      AWS_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+      - uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
+      - id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Create ECR repository if not exists
+      - name: Ensure ECR repository ${{ matrix.service }} exists
         run: |
-          aws ecr describe-repositories --repository-names newsletter-scheduler || \
-          aws ecr create-repository --repository-name newsletter-scheduler
+          aws ecr describe-repositories --repository-names ${{ matrix.service }} \
+          || aws ecr create-repository \
+               --repository-name ${{ matrix.service }} \
+               --image-scanning-configuration scanOnPush=true \
+               --region $AWS_REGION
 
-      - name: Build, tag and push image for ${{ matrix.folder }}
+      - name: Build, tag and push image
         env:
           IMAGE_TAG: ${{ github.sha }}
-          FOLDER: ${{ matrix.folder }}
-          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          SERVICE: ${{ matrix.service }}
         run: |
-          IMAGE_NAME=$ECR_REGISTRY/${FOLDER}
-          docker build -t $IMAGE_NAME:$IMAGE_TAG $FOLDER
-          docker push $IMAGE_NAME:$IMAGE_TAG
+          IMAGE_URI=$REGISTRY/$SERVICE:$IMAGE_TAG
+          echo "▶︎ Building $IMAGE_URI ..."
+          docker build -t $IMAGE_URI $SERVICE
 
-      - name: Show Image pushed
-        run: echo "Pushed ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ matrix.folder }}:${{ github.sha }}"
+          # (opcional) tag latest
+          docker tag $IMAGE_URI $REGISTRY/$SERVICE:latest
+
+          echo "▶︎ Pushing images ..."
+          docker push $REGISTRY/$SERVICE:$IMAGE_TAG
+          docker push $REGISTRY/$SERVICE:latest
+
+      - name: Show pushed image URI
+        run: |
+          echo "✅ Pushed: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.service }}:${{ github.sha }}"
